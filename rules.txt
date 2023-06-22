@@ -1,0 +1,14 @@
+[Physical]No Transcendence or Bracer
+[Physical]AA or Ability Based (Opposite)
+[Physical]2 Evolving Stacking Items
+[Physical]Afford Full Items
+[Physical]No Boots
+[Physical]No Flat Pen
+[Physical]No Lifesteal
+[Magical]No Bancroft's or Bracer
+[Magical]AA or Ability Based (Opposite)
+[Magical]2 Evolving Stacking Items
+[Magical]Afford Full Items
+[Magical]No Boots
+[Magical]No Flat Pen
+[Magical]No Lifesteal
