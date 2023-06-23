@@ -19,8 +19,6 @@ public class SmiteAPI implements ISmiteAPI
 {
     IConstants _constants;
     private static String url = "https://api.smitegame.com/smiteapi.svc";
-
-    private SmiteWebRipAPI _webRipAPI;
     private int _sessionId;
 
     public static void main(String[] args)

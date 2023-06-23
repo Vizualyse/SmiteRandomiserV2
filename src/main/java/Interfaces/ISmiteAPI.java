@@ -82,13 +82,13 @@ public interface ISmiteAPI
      * @param godImageLinks list of links to find index - length should match god names
      * @param constants an implementation of the IConstants interface
      */
-    default void DownloadImageDataToFile(String url, ArrayList<String> godImageLinks, IConstants constants)
+    default void DownloadImageDataToFile(String url, int godIndex, IConstants constants)
     {
         try
         {
             ArrayList<String> godNames = GetGodNames();
             Files.createDirectories(Paths.get(constants.ImagesFolder()));
-            String fileName = godNames.get(godImageLinks.indexOf(url));
+            String fileName = godNames.get(godIndex);
             Connection.Response resultImageResponse = Jsoup.connect(url).ignoreContentType(true).execute();
 
             FileOutputStream out = (new FileOutputStream(constants.ImagesFolder() + fileName + ".jpg"));

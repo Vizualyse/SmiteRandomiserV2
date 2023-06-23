@@ -12,6 +12,9 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class SmiteWebRipAPI implements ISmiteAPI
 {
@@ -19,18 +22,8 @@ public class SmiteWebRipAPI implements ISmiteAPI
     private Document _doc;
     private Elements _godTable = new Elements();
 
-    private ArrayList<String> _godNames = new ArrayList();
-    private ArrayList<GodType> _godType = new ArrayList();
-    private ArrayList<String> _godWikiLinks = new ArrayList();
+    private ArrayList<God> _gods = new ArrayList<>();
     private ArrayList<String> _godImageLinks = new ArrayList();
-
-    public static void main(String[] args)
-    {
-        SmiteWebRipAPI smiteWebRipAPI = new SmiteWebRipAPI();
-        smiteWebRipAPI.GetGodNames();
-        smiteWebRipAPI.GetGodWikiLinks();
-        smiteWebRipAPI.GetGodImageLinks();
-    }
 
     public SmiteWebRipAPI()
     {
@@ -61,22 +54,18 @@ public class SmiteWebRipAPI implements ISmiteAPI
     @Override
     public ArrayList<String> GetGodNames()
     {
-        if (!_godNames.isEmpty()){
-            return _godNames;
-        }
-
-        if (_godTable == null)
-        {
-            return new ArrayList<>();
-        }
+        if (!_gods.isEmpty()) { return new ArrayList(_gods.stream().map(x -> x.GodName).toList()); }
+        if (_godTable == null) { return new ArrayList<>(); }
 
         _godTable.forEach(x -> {
-            _godNames.add(x.selectFirst("a").attr("title"));
+            God god = new God();
+            god.GodName = x.selectFirst("a").attr("title");
             Element e = x.selectFirst("a:contains(Physical)");
-            boolean b = e == null ? _godType.add(GodType.MAGICAL) : _godType.add(GodType.PHYSICAL);
+            god.GodType = e == null ? GodType.MAGICAL : GodType.PHYSICAL;
+            _gods.add(god);
         });
 
-        return _godNames;
+        return new ArrayList(_gods.stream().map(x -> x.GodName).toList());
     }
 
     /**
@@ -85,54 +74,63 @@ public class SmiteWebRipAPI implements ISmiteAPI
     @Override
     public ArrayList<String> GetGodWikiLinks()
     {
-        if (!_godWikiLinks.isEmpty()){
-            return _godWikiLinks;
-        }
+        ArrayList godWikiLinks = new ArrayList(_gods.stream().map(x -> x.GodWikiLink).toList());
+        godWikiLinks.removeIf(Objects::isNull);
+        if (!godWikiLinks.isEmpty()) { return godWikiLinks; }
 
-        _godWikiLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodWikiListFileName());
+        godWikiLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodWikiListFileName());
         ArrayList<String> godNames = GetGodNames();
 
-        if (godNames.size() != _godWikiLinks.size()) { _godWikiLinks = new ArrayList<>(); }
-
-        if (_godTable == null)
+        if (!godWikiLinks.isEmpty() && godNames.size() == godWikiLinks.size())
         {
-            return new ArrayList<>();
+            ArrayList<String> finalGodWikiLinks = godWikiLinks;
+            finalGodWikiLinks.forEach(x -> _gods.get(finalGodWikiLinks.indexOf(x)).GodWikiLink = x);
+            return godWikiLinks;
         }
 
+        if (_godTable == null) { return new ArrayList<>(); }
+
         String baseUrl = "https://smite.fandom.com";
+        _godTable.forEach(x -> _gods.get(_godTable.indexOf(x)).GodWikiLink = baseUrl + x.select("a").first().attr("href"));
+        godWikiLinks = new ArrayList(_gods.stream().map(x -> x.GodWikiLink).toList());
 
-        _godTable.forEach(x -> _godWikiLinks.add(baseUrl+ x.select("a").first().attr("href")));
+        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodWikiListFileName(), godWikiLinks);
 
-        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodWikiListFileName(), _godWikiLinks);
-
-        return _godWikiLinks;
+        return godWikiLinks;
     }
 
     @Override
     public ArrayList<String> GetGodImageLinks()
     {
-        if (!_godImageLinks.isEmpty()){
-            return _godImageLinks;
-        }
+        ArrayList<String> godImageLinks = new ArrayList(_gods.stream().map(x -> x.GodImageLink).toList());
+        godImageLinks.removeIf(Objects::isNull);
+        if (!godImageLinks.isEmpty()) { return godImageLinks; }
         ArrayList<String> godNames = GetGodNames();
 
         //local links to images
-        _godImageLinks = PullGodImagesFromFile(_constants);
+        godImageLinks = PullGodImagesFromFile(_constants);
 
-        if (!_godImageLinks.isEmpty() && _godImageLinks.size() == godNames.size()){
-            return _godImageLinks;
+        if (!godImageLinks.isEmpty() && godImageLinks.size() == godNames.size())
+        {
+            ArrayList<String> finalGodImageLinks = godImageLinks;
+            finalGodImageLinks.forEach(x -> _gods.get(finalGodImageLinks.indexOf(x)).GodImageLink = x);
+            return godImageLinks;
         }
 
-        //remote links to images
-        _godImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodImageListFileName());
-
-        if (godNames.size() != _godImageLinks.size()) { _godImageLinks = new ArrayList<>(); }
+        //remote links to images - download to file and pull from there
+        godImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodImageListFileName());
+        if (!godImageLinks.isEmpty() && godNames.size() == _godImageLinks.size())
+        {
+            ArrayList<String> finalGodImageLinks = godImageLinks;
+            finalGodImageLinks.forEach(x -> DownloadImageDataToFile(x, finalGodImageLinks.indexOf(x), _constants));
+            godImageLinks = PullGodImagesFromFile(_constants);
+            ArrayList<String> finalGodImageLinksFromFile = godImageLinks;
+            finalGodImageLinksFromFile.forEach(x -> _gods.get(finalGodImageLinksFromFile.indexOf(x)).GodImageLink = x);
+            return godImageLinks;
+        }
 
         //pull new data
-        if (_godTable == null)
-        {
-            return new ArrayList<>();
-        }
+        if (_godTable == null) { return new ArrayList<>(); }
 
         ArrayList<String> wikiLinks = GetGodWikiLinks();
         ArrayList<Document> godPages = new ArrayList<>();
@@ -149,17 +147,22 @@ public class SmiteWebRipAPI implements ISmiteAPI
             }
         });
 
-        godPages.forEach(y -> _godImageLinks.add(y.select(".image").first().attr("href")));
-        _godImageLinks.forEach(x -> DownloadImageDataToFile(x, _godImageLinks, _constants));
+        godPages.forEach(y ->
+        {
+            String url = y.select(".image").first().attr("href");
+            _gods.get(godPages.indexOf(y)).GodImageLink = url;
+            DownloadImageDataToFile(url, godPages.indexOf(y), _constants);
+        });
 
-        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodImageListFileName(), _godImageLinks);
+        godImageLinks = new ArrayList(_gods.stream().map(x -> x.GodImageLink).toList());
+        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodImageListFileName(), godImageLinks);
 
-        return _godImageLinks;
+        return godImageLinks;
     }
 
     @Override
     public GodType GetGodType(String godName)
     {
-        return _godType.get(_godNames.indexOf(godName));
+        return _gods.stream().filter(x -> x.GodName.equals(godName)).map(x -> x.GodType).findFirst().orElse(null);
     }
 }
