@@ -5,6 +5,7 @@ package Implementation;/*
  */
 
 
+import Enums.GodType;
 import Interfaces.ISmiteAPI;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -24,6 +25,7 @@ import javafx.stage.StageStyle;
 import javafx.util.Callback;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Random;
 
 
 /**
@@ -31,11 +33,9 @@ import java.util.ArrayList;
  * @author mykha
  */
 public class SmiteRandomiserUI extends Application {
-    //Elements godList = new Elements();
     SmiteRandomiserRules _ruleSet = new SmiteRandomiserRules();
     ISmiteAPI _smiteAPI;
     ObservableList<String> gods = FXCollections.observableArrayList();
-    ArrayList<String> godType = new ArrayList();
 
     BorderPane root = new BorderPane();
     StackPane topStack = new StackPane();
@@ -47,7 +47,8 @@ public class SmiteRandomiserUI extends Application {
     private static double yOffset = 0;
 
     @Override
-    public void start(Stage primaryStage) {
+    public void start(Stage primaryStage)
+    {
         _smiteAPI = new SmiteAPI();
         int connectionResult = ((SmiteAPI)_smiteAPI).Connect();
         if (connectionResult == 200 || connectionResult == 0)
@@ -85,9 +86,7 @@ public class SmiteRandomiserUI extends Application {
         SetupRandomiseButton();
         ModifyRuleStageSetup();
         UpdateImage();
-        /*
-        updateRules();
-        */
+        Randomise();
 
         Button rules = new Button("Modify Rules");
         rules.setFont(Font.font("arial", 16));
@@ -120,7 +119,7 @@ public class SmiteRandomiserUI extends Application {
 
     private void ModifyRuleStageSetup()
     {
-        ObservableList<String> selectedRules = FXCollections.observableArrayList(_ruleSet.GetRules(SmiteRandomiserRuleType.PHYSICAL));
+        ObservableList<String> selectedRules = FXCollections.observableArrayList(_ruleSet.GetRules(GodType.PHYSICAL));
 
         BorderPane rulePane = new BorderPane();
         Scene ruleScene = new Scene(rulePane, 300, 400);
@@ -163,7 +162,7 @@ public class SmiteRandomiserUI extends Application {
 
         ruleBox.setOnAction(event ->
         {
-            SmiteRandomiserRuleType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
+            GodType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
 
             String currentRulesStr = "";
             for(String s: _ruleSet.GetRules(ruleType))
@@ -186,9 +185,11 @@ public class SmiteRandomiserUI extends Application {
         removeButton.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
         removeButton.setOnAction(event ->
         {
-            SmiteRandomiserRuleType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
+            GodType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
 
             _ruleSet.RemoveRule(ruleType, removeBox.getSelectionModel().getSelectedIndex());
+            _ruleSet.UpdateRuleFile();
+
             String currentRulesStr = "";
             for(String s: _ruleSet.GetRules(ruleType))
             {
@@ -204,7 +205,7 @@ public class SmiteRandomiserUI extends Application {
         ruleEntry.setStyle("-fx-text-fill: #f9e294;-fx-font-family: arial;-fx-font-size: 16px;");
         ruleEntry.setOnKeyPressed(event ->
         {
-            SmiteRandomiserRuleType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
+            GodType ruleType = SmiteRandomiserRules.GetRuleTypeByIndex(ruleBox.getSelectionModel().getSelectedIndex());
 
             if(event.getCode().equals(KeyCode.ENTER))
             {
@@ -224,7 +225,7 @@ public class SmiteRandomiserUI extends Application {
         });
 
         String currentRulesStr = "";
-        for(String s: _ruleSet.GetRules(SmiteRandomiserRuleType.PHYSICAL)){
+        for(String s: _ruleSet.GetRules(GodType.PHYSICAL)){
             currentRulesStr += s + "\n";
         }
 
@@ -245,27 +246,7 @@ public class SmiteRandomiserUI extends Application {
         btn.setFont(Font.font("arial", 16));
         btn.setTextFill(Color.web("#f9e294"));
         btn.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
-        /*btn.setOnAction((event)->{
-            Random rand = new Random();
-            list.getSelectionModel().select(rand.nextInt(godList.size()));
-            updateImage();
-            Label l = new Label();
-            l.setStyle("-fx-text-fill: black;-fx-font-family: arial;-fx-font-size: 32px;");
-            if(godType.get(list.getSelectionModel().getSelectedIndex()).equals("Physical")){
-                if(physRules.size()>0){
-                    l.setText(physRules.get(rand.nextInt(physRules.size())));
-                }
-            }else{
-                if(magRules.size()>0){
-                    l.setText(magRules.get(rand.nextInt(magRules.size())));
-                }
-            }
-            TilePane tile = new TilePane();
-            tile.setAlignment(Pos.CENTER);
-            tile.getChildren().add(l);
-            tile.setTranslateY(-20);
-            root.setBottom(tile);
-        });*/
+        btn.setOnAction(event -> Randomise());
 
         topBox.getChildren().add(btn);
     }
@@ -294,24 +275,29 @@ public class SmiteRandomiserUI extends Application {
         root.setCenter(imageView);
     }
 
-    public void updateGodList(){
-        /*String url = "https://smite.fandom.com/wiki/Category:Gods";
-        try {
-            Document doc = Jsoup.connect(url).get();
-            for(Element e: doc.getElementsByClass("category-page__member")){
-                godList.add(e);
-                for(Element f: Jsoup.connect(e.getElementsByClass("category-page__member-link").get(0).absUrl("href")).get().getElementsByClass("pi-data-value pi-font").get(0).getElementsByAttribute("title")){
-                    if(f.attr("title").equals("Magical") || f.attr("title").equals("Physical")){
-                        godType.add(f.attr("title"));
-                    }
-                }
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(SmiteGodList.class.getName()).log(Level.SEVERE, null, ex);
-        }*/
+    private void Randomise()
+    {
+        Random rand = new Random();
+        list.getSelectionModel().select(rand.nextInt(gods.size()));
+        UpdateImage();
+        Label l = new Label();
+        l.setStyle("-fx-text-fill: black;-fx-font-family: arial;-fx-font-size: 32px;");
+
+        ArrayList<String> rules = _ruleSet.GetRules(_smiteAPI.GetGodType((String)list.getSelectionModel().getSelectedItem()));
+        if (!rules.isEmpty())
+        {
+            l.setText(rules.get(rand.nextInt(rules.size())));
+        }
+
+        TilePane tile = new TilePane();
+        tile.setAlignment(Pos.CENTER);
+        tile.getChildren().add(l);
+        tile.setTranslateY(-20);
+        root.setBottom(tile);
     }
 
-    private void SetCellFactory(ComboBox comboBox) {
+    private void SetCellFactory(ComboBox comboBox)
+    {
         comboBox.setCellFactory(new Callback<ListView<String>, ListCell<String>>() {
             @Override public ListCell<String> call(ListView<String> param) {
                 final ListCell<String> cell = new ListCell<String>() {
@@ -353,7 +339,8 @@ public class SmiteRandomiserUI extends Application {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args)
+    {
         launch(args);
     }
 

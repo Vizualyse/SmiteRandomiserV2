@@ -1,5 +1,6 @@
 package Interfaces;
 
+import Enums.GodType;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 
@@ -17,6 +18,7 @@ public interface ISmiteAPI
     ArrayList<String> GetGodNames();
     ArrayList<String> GetGodWikiLinks();
     ArrayList<String> GetGodImageLinks();
+    GodType GetGodType(String godName);
 
     /**
      * Given the name of a .txt file, reads from the file into a list separating by commas

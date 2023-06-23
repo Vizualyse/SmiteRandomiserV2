@@ -1,12 +1,13 @@
 package Implementation;
 
+import Enums.GodType;
 import Interfaces.IConstants;
 import Interfaces.ISmiteAPI;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.awt.color.ICC_ColorSpace;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -19,6 +20,7 @@ public class SmiteWebRipAPI implements ISmiteAPI
     private Elements _godTable = new Elements();
 
     private ArrayList<String> _godNames = new ArrayList();
+    private ArrayList<GodType> _godType = new ArrayList();
     private ArrayList<String> _godWikiLinks = new ArrayList();
     private ArrayList<String> _godImageLinks = new ArrayList();
 
@@ -68,7 +70,11 @@ public class SmiteWebRipAPI implements ISmiteAPI
             return new ArrayList<>();
         }
 
-        _godTable.forEach(x -> _godNames.add(x.select("a").first().attr("title")));
+        _godTable.forEach(x -> {
+            _godNames.add(x.selectFirst("a").attr("title"));
+            Element e = x.selectFirst("a:contains(Physical)");
+            boolean b = e == null ? _godType.add(GodType.MAGICAL) : _godType.add(GodType.PHYSICAL);
+        });
 
         return _godNames;
     }
@@ -149,5 +155,11 @@ public class SmiteWebRipAPI implements ISmiteAPI
         WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodImageListFileName(), _godImageLinks);
 
         return _godImageLinks;
+    }
+
+    @Override
+    public GodType GetGodType(String godName)
+    {
+        return _godType.get(_godNames.indexOf(godName));
     }
 }

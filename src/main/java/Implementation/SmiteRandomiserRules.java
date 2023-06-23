@@ -1,5 +1,6 @@
 package Implementation;
 
+import Enums.GodType;
 import Interfaces.IConstants;
 
 import java.io.*;
@@ -57,7 +58,7 @@ public class SmiteRandomiserRules
             }
             for(String s: _magRules)
             {
-                rule += _constants.PhysicalTag() + s + "\n";
+                rule += _constants.MagicalTag() + s + "\n";
             }
 
             os.write(rule.getBytes(StandardCharsets.UTF_8));
@@ -69,7 +70,7 @@ public class SmiteRandomiserRules
         }
     }
 
-    public void AddRule(SmiteRandomiserRuleType ruleType, String rule)
+    public void AddRule(GodType ruleType, String rule)
     {
         switch (ruleType){
             case PHYSICAL -> _physRules.add(rule);
@@ -77,7 +78,7 @@ public class SmiteRandomiserRules
         }
     }
 
-    public void RemoveRule(SmiteRandomiserRuleType ruleType, String rule)
+    public void RemoveRule(GodType ruleType, String rule)
     {
         switch (ruleType){
             case PHYSICAL -> _physRules.remove(rule);
@@ -85,7 +86,7 @@ public class SmiteRandomiserRules
         }
     }
 
-    public void RemoveRule(SmiteRandomiserRuleType ruleType, int rule)
+    public void RemoveRule(GodType ruleType, int rule)
     {
         switch (ruleType){
             case PHYSICAL -> _physRules.remove(rule);
@@ -93,7 +94,7 @@ public class SmiteRandomiserRules
         }
     }
 
-    public ArrayList<String> GetRules(SmiteRandomiserRuleType ruleType)
+    public ArrayList<String> GetRules(GodType ruleType)
     {
         ArrayList<String> rules;
         switch (ruleType){
@@ -104,7 +105,7 @@ public class SmiteRandomiserRules
         return rules;
     }
 
-    public static SmiteRandomiserRuleType GetRuleTypeByIndex(int index){
-        return index == 0 ? SmiteRandomiserRuleType.PHYSICAL : SmiteRandomiserRuleType.MAGICAL;
+    public static GodType GetRuleTypeByIndex(int index){
+        return index == 0 ? GodType.PHYSICAL : GodType.MAGICAL;
     }
 }

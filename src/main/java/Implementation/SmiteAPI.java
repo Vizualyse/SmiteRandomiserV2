@@ -1,5 +1,6 @@
 package Implementation;
 
+import Enums.GodType;
 import Interfaces.IConstants;
 import Interfaces.ISmiteAPI;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -85,6 +86,12 @@ public class SmiteAPI implements ISmiteAPI
 
     @Override
     public ArrayList<String> GetGodImageLinks()
+    {
+        return null;
+    }
+
+    @Override
+    public GodType GetGodType(String godName)
     {
         return null;
     }
