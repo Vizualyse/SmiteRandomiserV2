@@ -45,7 +45,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>SmiteRandomiserUI</mainClass>
+                    <mainClass>Implementation.SmiteRandomiserUI</mainClass>
                 </configuration>
             </plugin>
             <plugin>

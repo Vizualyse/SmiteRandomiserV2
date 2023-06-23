@@ -1,3 +1,7 @@
+package Implementation;
+
+import Interfaces.IConstants;
+import Interfaces.ISmiteAPI;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.IOException;
@@ -10,8 +14,9 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
-public class SmiteAPI {
-
+public class SmiteAPI implements ISmiteAPI
+{
+    IConstants _constants;
     private static String url = "https://api.smitegame.com/smiteapi.svc";
 
     private SmiteWebRipAPI _webRipAPI;
@@ -25,18 +30,10 @@ public class SmiteAPI {
 
     public SmiteAPI()
     {
-        int statusCode = Connect();
-        if (statusCode == 0 || statusCode == 200)
-        {
-            _webRipAPI = new SmiteWebRipAPI();
-        }
-        else
-        {
-
-        }
+        _constants = new Constants();
     }
 
-    private int Connect()
+    public int Connect()
     {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneId.from(ZoneOffset.UTC));
         String datetime = dtf.format(Instant.now());
@@ -73,39 +70,22 @@ public class SmiteAPI {
         return 0;
     }
 
+
+    @Override
     public ArrayList<String> GetGodNames()
     {
-        if (_webRipAPI != null)
-        {
-            return _webRipAPI.GetGodNames();
-        }
-        else
-        {
-            return new ArrayList<>();
-        }
+        return null;
     }
 
+    @Override
     public ArrayList<String> GetGodWikiLinks()
     {
-        if (_webRipAPI != null)
-        {
-            return _webRipAPI.GetGodWikiLinks();
-        }
-        else
-        {
-            return new ArrayList<>();
-        }
+        return null;
     }
 
+    @Override
     public ArrayList<String> GetGodImageLinks()
     {
-        if (_webRipAPI != null)
-        {
-            return _webRipAPI.GetGodImageLinks();
-        }
-        else
-        {
-            return new ArrayList<>();
-        }
+        return null;
     }
 }

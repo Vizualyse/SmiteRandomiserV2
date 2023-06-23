@@ -1,8 +1,9 @@
+package Implementation;
+
+import Interfaces.IConstants;
+
 import java.io.*;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -11,11 +12,13 @@ import java.util.logging.Logger;
 
 public class SmiteRandomiserRules
 {
+    IConstants _constants;
     private ArrayList<String> _physRules = new ArrayList();
     private ArrayList<String> _magRules = new ArrayList();
 
     public SmiteRandomiserRules()
     {
+        _constants = new Constants();
         UpdateRulesFromFile();
     }
 
@@ -27,7 +30,7 @@ public class SmiteRandomiserRules
 
             rules.forEach(x ->
             {
-                if (x.startsWith(Constants.PhysicalTag))
+                if (x.startsWith(_constants.PhysicalTag()))
                     _physRules.add(x.split("]")[1]);
                 else
                     _magRules.add(x.split("]")[1]);
@@ -50,11 +53,11 @@ public class SmiteRandomiserRules
             String rule = "";
             for(String s: _physRules)
             {
-                rule += Constants.PhysicalTag + s + "\n";
+                rule += _constants.PhysicalTag() + s + "\n";
             }
             for(String s: _magRules)
             {
-                rule += Constants.MagicalTag + s + "\n";
+                rule += _constants.PhysicalTag() + s + "\n";
             }
 
             os.write(rule.getBytes(StandardCharsets.UTF_8));

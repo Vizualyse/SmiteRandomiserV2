@@ -1,10 +1,11 @@
-/*
+package Implementation;/*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
 
 
+import Interfaces.ISmiteAPI;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -32,7 +33,7 @@ import java.util.ArrayList;
 public class SmiteRandomiserUI extends Application {
     //Elements godList = new Elements();
     SmiteRandomiserRules _ruleSet = new SmiteRandomiserRules();
-    SmiteAPI _smiteAPI = new SmiteAPI();
+    ISmiteAPI _smiteAPI;
     ObservableList<String> gods = FXCollections.observableArrayList();
     ArrayList<String> godType = new ArrayList();
 
@@ -47,6 +48,13 @@ public class SmiteRandomiserUI extends Application {
 
     @Override
     public void start(Stage primaryStage) {
+        _smiteAPI = new SmiteAPI();
+        int connectionResult = ((SmiteAPI)_smiteAPI).Connect();
+        if (connectionResult == 200 || connectionResult == 0)
+        {
+            _smiteAPI = new SmiteWebRipAPI();
+        }
+
         try
         {
             Image img = new Image(new FileInputStream("Rexsi Logo.png"));
