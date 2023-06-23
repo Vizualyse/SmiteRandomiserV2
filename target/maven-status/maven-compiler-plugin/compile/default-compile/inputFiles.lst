@@ -1,9 +1,11 @@
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\SmiteRandomiserUI.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Interfaces\ISmiteAPI.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Enums\GodType.java
+D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\GUIStarter.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Interfaces\IConstants.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\SmiteAPI.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\SmiteRandomiserRules.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\God.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\SmiteWebRipAPI.java
 D:\Repos\SmiteRandomiserV2\src\main\java\Implementation\Constants.java
+D:\Repos\SmiteRandomiserV2\src\main\java\Helpers\ResourceHelper.java

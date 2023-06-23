@@ -1,6 +1,7 @@
 package Implementation;
 
 import Enums.GodType;
+import Helpers.ResourceHelper;
 import Interfaces.IConstants;
 
 import java.io.*;
@@ -26,7 +27,14 @@ public class SmiteRandomiserRules
     public void UpdateRulesFromFile(){
         try
         {
-            InputStream is = new FileInputStream("rules.txt");
+            if (!new File(_constants.ResourcesFolder() + _constants.RuleListFileName()).exists())
+            {
+                InputStream is = ResourceHelper.GetResourceFromFile(_constants.DataFolder() + _constants.RuleListFileName());
+                FileOutputStream f = new FileOutputStream(_constants.ResourcesFolder() + _constants.RuleListFileName());
+                f.write(is.readAllBytes());
+            }
+
+            InputStream is = new FileInputStream(_constants.ResourcesFolder() + _constants.RuleListFileName());
             List<String> rules = Arrays.stream(new String(is.readAllBytes()).split("\n")).toList();
 
             rules.forEach(x ->
@@ -49,7 +57,7 @@ public class SmiteRandomiserRules
     {
         try
         {
-            OutputStream os = new FileOutputStream("rules.txt");
+            OutputStream os = new FileOutputStream(_constants.ResourcesFolder() + _constants.RuleListFileName());
 
             String rule = "";
             for(String s: _physRules)

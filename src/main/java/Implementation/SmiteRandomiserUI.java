@@ -6,6 +6,7 @@ package Implementation;/*
 
 
 import Enums.GodType;
+import Helpers.ResourceHelper;
 import Interfaces.ISmiteAPI;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
@@ -23,7 +24,6 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
-import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -58,9 +58,9 @@ public class SmiteRandomiserUI extends Application {
 
         try
         {
-            Image img = new Image(new FileInputStream("Rexsi Logo.png"));
+            Image img = new Image(ResourceHelper.GetResourceFromFile(new Constants().DataFolder() + "Rexsi Logo.png"));
             ImageView imgView = new ImageView(img);
-            imgView.setFitWidth(600);
+            imgView.setFitWidth(598);
             imgView.setFitHeight(140);
             topStack.getChildren().add(imgView);
             topBox.getChildren().add(topStack);
@@ -343,5 +343,4 @@ public class SmiteRandomiserUI extends Application {
     {
         launch(args);
     }
-
 }

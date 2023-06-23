@@ -21,12 +21,6 @@ public class SmiteAPI implements ISmiteAPI
     private static String url = "https://api.smitegame.com/smiteapi.svc";
     private int _sessionId;
 
-    public static void main(String[] args)
-    {
-        SmiteAPI api = new SmiteAPI();
-        api.Connect();
-    }
-
     public SmiteAPI()
     {
         _constants = new Constants();
@@ -55,8 +49,8 @@ public class SmiteAPI implements ISmiteAPI
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
+            System.out.println(response.body());
             return response.statusCode();
-            //System.out.println(response.body());
         }
         catch (IOException e)
         {

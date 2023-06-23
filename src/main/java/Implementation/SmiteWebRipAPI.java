@@ -7,14 +7,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class SmiteWebRipAPI implements ISmiteAPI
 {
@@ -30,8 +25,6 @@ public class SmiteWebRipAPI implements ISmiteAPI
         _constants = new Constants();
         try
         {
-            Files.createDirectories(Paths.get(_constants.ResourcesFolder()));
-
             _doc = Jsoup.connect("https://smite.fandom.com/wiki/List_of_gods").get();
             _doc.getElementsByTag("tr").forEach(x -> {
                 if (x.select(":contains(Physical)").size() > 0){
