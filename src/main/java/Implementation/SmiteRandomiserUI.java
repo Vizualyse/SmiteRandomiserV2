@@ -3,27 +3,35 @@ package Implementation;/*
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-
-
 import Enums.GodType;
 import Helpers.ResourceHelper;
+import Interfaces.IConstants;
 import Interfaces.ISmiteAPI;
+import com.goxr3plus.fxborderlessscene.borderless.BorderlessScene;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Callback;
+import org.reactfx.EventSource;
+import org.reactfx.EventStream;
+import org.reactfx.EventStreams;
+
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -33,13 +41,15 @@ import java.util.Random;
  * @author mykha
  */
 public class SmiteRandomiserUI extends Application {
-    SmiteRandomiserRules _ruleSet = new SmiteRandomiserRules();
+
     ISmiteAPI _smiteAPI;
+    IConstants _constants;
+    SmiteRandomiserRules _ruleSet = new SmiteRandomiserRules();
     ObservableList<String> gods = FXCollections.observableArrayList();
 
+    EventStream _onDragEvent;
+    EventSource _onRandomiseEvent;
     BorderPane root = new BorderPane();
-    StackPane topStack = new StackPane();
-    VBox topBox = new VBox(5);
     ComboBox list;
     Stage _modifyRulesStage = new Stage();
 
@@ -56,65 +66,64 @@ public class SmiteRandomiserUI extends Application {
             _smiteAPI = new SmiteWebRipAPI();
         }
 
+        _constants = new Constants();
+
+        _onRandomiseEvent = new EventSource();
+
+        VBox topBox = new VBox(5);
+        topBox.setAlignment(Pos.CENTER);
+
+        root.setTop(topBox);
+        root.setStyle("-fx-border-color: black; -fx-background-color: #f9e294;");
+        SetDraggable(root, primaryStage);
+
+        BorderlessScene scene = new BorderlessScene(primaryStage, StageStyle.UNDECORATED, root, _constants.MinScreenWidth(), _constants.MinScreenHeight());
+        scene.removeDefaultCSS();
+        _onDragEvent = EventStreams.eventsOf(primaryStage, MouseEvent.MOUSE_DRAGGED);
+
+        primaryStage.setTitle("Rexsi's Randomiser");
+        primaryStage.setScene(scene);
+        primaryStage.setWidth(_constants.DefaultScreenWidth());
+        primaryStage.setHeight(_constants.DefaultScreenHeight());
+        primaryStage.show();
+
+        ModifyRuleStageSetup();
+
+        StackPane stackPane = new StackPane();
         try
         {
-            Image img = new Image(ResourceHelper.GetResourceFromFile(new Constants().DataFolder() + "Rexsi Logo.png"));
+            Image img = new Image(ResourceHelper.GetResourceFromFile(_constants.DataFolder() + "Rexsi Logo.png"));
             ImageView imgView = new ImageView(img);
-            imgView.setFitWidth(598);
-            imgView.setFitHeight(140);
-            topStack.getChildren().add(imgView);
-            topBox.getChildren().add(topStack);
+            imgView.setFitHeight(_constants.DefaultScreenHeight() * 0.15);
+            imgView.setPreserveRatio(true);
+            UpdateImageOnResize(primaryStage, imgView, img, 0.15);
+            stackPane.getChildren().add(imgView);
         }
         catch(Exception e)
         {
             System.out.println(e);
         }
 
-        topBox.setAlignment(Pos.CENTER);
-        root.setTop(topBox);
+        Button exit = CreateExitButton(primaryStage, false);
+        stackPane.getChildren().add(exit);
+        stackPane.setAlignment(exit, Pos.TOP_RIGHT);
 
-        Button exit = new Button("X");
-        exit.setFont(Font.font("tahoma", 10));
-        exit.setBackground(new Background(new BackgroundFill(Color.BLACK, CornerRadii.EMPTY, Insets.EMPTY)));
-        exit.setTextFill(Color.RED);
-        exit.setTranslateY(-145);
-        exit.setTranslateX(290);
-        exit.setOnAction(event -> primaryStage.close());
-        topBox.getChildren().add(exit);
+        topBox.getChildren().addAll(
+                stackPane,
+                SetupGodsDropdown(),
+                CreateButton("Modify Rules", event -> _modifyRulesStage.show()),
+                CreateButton("Randomise", event -> Randomise()));
 
-        SetupGodsDropdown();
-        SetupRandomiseButton();
-        ModifyRuleStageSetup();
-        UpdateImage();
+        String url = _smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex());
+        Image image = new Image(url);
+        ImageView imageView = new ImageView(image);
+        imageView.setFitHeight(_constants.DefaultScreenHeight()*0.6);
+        imageView.setPreserveRatio(true);
+        UpdateImageOnResize(primaryStage, imageView, image, 0.6);
+        _onRandomiseEvent.subscribe(x -> imageView.setImage(new Image(_smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex()))));
+        root.setCenter(imageView);
+
         Randomise();
-
-        Button rules = new Button("Modify Rules");
-        rules.setFont(Font.font("arial", 16));
-        rules.setTextFill(Color.web("#f9e294"));
-        rules.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
-        rules.setOnAction(event -> _modifyRulesStage.show());
-        topBox.getChildren().add(rules);
-
-        Scene scene = new Scene(root, 600, 1000);
-
-        root.setStyle("-fx-border-color: black; -fx-background-color: #f9e294;");
-        primaryStage.setTitle("Rexsi's Randomiser");
-        primaryStage.initStyle(StageStyle.UNDECORATED);
-        root.setOnMousePressed(event ->
-        {
-            xOffset = primaryStage.getX() - event.getScreenX();
-            yOffset = primaryStage.getY() - event.getScreenY();
-        });
-
-        root.setOnMouseDragged(event ->
-        {
-            primaryStage.setX(event.getScreenX() + xOffset);
-            primaryStage.setY(event.getScreenY() + yOffset);
-
-        });
-
-        primaryStage.setScene(scene);
-        primaryStage.show();
     }
 
     private void ModifyRuleStageSetup()
@@ -138,13 +147,9 @@ public class SmiteRandomiserUI extends Application {
             _modifyRulesStage.setY(event.getScreenY() + yOffset);
         });
 
-        Button exit = new Button("X");
-        exit.setFont(Font.font("tahoma", 10));
-        exit.setBackground(new Background(new BackgroundFill(Color.BLACK, CornerRadii.EMPTY, Insets.EMPTY)));
-        exit.setTextFill(Color.RED);
-        exit.setTranslateX(280);
-        exit.setOnAction(event -> _modifyRulesStage.hide());
+        Button exit = CreateExitButton(_modifyRulesStage, true);
         rulePane.setTop(exit);
+        rulePane.setAlignment(exit, Pos.TOP_RIGHT);
 
         VBox rules = new VBox(5);
         rules.setAlignment(Pos.TOP_CENTER);
@@ -155,7 +160,6 @@ public class SmiteRandomiserUI extends Application {
         ruleBox.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
         SetCellFactory(ruleBox);
         SetButtonCell(ruleBox);
-
 
         Label currentRules = new Label();
         currentRules.setStyle("-fx-text-fill: black;-fx-font-family: arial;-fx-font-size: 16px;");
@@ -240,18 +244,7 @@ public class SmiteRandomiserUI extends Application {
         _modifyRulesStage.setScene(ruleScene);
     }
 
-    public void SetupRandomiseButton()
-    {
-        Button btn = new Button("Randomise");
-        btn.setFont(Font.font("arial", 16));
-        btn.setTextFill(Color.web("#f9e294"));
-        btn.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
-        btn.setOnAction(event -> Randomise());
-
-        topBox.getChildren().add(btn);
-    }
-
-    public void SetupGodsDropdown()
+    public ComboBox SetupGodsDropdown()
     {
         gods.addAll(_smiteAPI.GetGodNames());
         list = new ComboBox(gods);
@@ -260,26 +253,16 @@ public class SmiteRandomiserUI extends Application {
         list.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
         SetCellFactory(list);
         SetButtonCell(list);
-        list.setOnAction(event -> UpdateImage());
+        list.setOnAction(event -> _onRandomiseEvent.push(null));
 
-        topBox.getChildren().add(list);
-    }
-
-    public void UpdateImage()
-    {
-        String url = _smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex());
-        Image image = new Image(url);
-        ImageView imageView = new ImageView(image);
-        imageView.setFitHeight(600);
-        imageView.setFitWidth(450);
-        root.setCenter(imageView);
+        return list;
     }
 
     private void Randomise()
     {
         Random rand = new Random();
         list.getSelectionModel().select(rand.nextInt(gods.size()));
-        UpdateImage();
+        _onRandomiseEvent.push(null);
         Label l = new Label();
         l.setStyle("-fx-text-fill: black;-fx-font-family: arial;-fx-font-size: 32px;");
 
@@ -294,6 +277,40 @@ public class SmiteRandomiserUI extends Application {
         tile.getChildren().add(l);
         tile.setTranslateY(-20);
         root.setBottom(tile);
+    }
+
+    private Button CreateExitButton(Stage stage, Boolean hide)
+    {
+        Button exit = new Button("X");
+        exit.setStyle("""
+                -fx-min-width: 25px;
+                -fx-max-width: 25px;
+                -fx-min-height: 25px;
+                -fx-max-height: 25px;
+                -fx-text-fill: #f00;
+                -fx-font-family: tahoma;
+                -fx-font-size: 12px;""");
+        exit.setBackground(new Background(new BackgroundFill(Color.BLACK, CornerRadii.EMPTY, Insets.EMPTY)));
+        exit.setTextFill(Color.RED);
+        exit.setViewOrder(0);
+        exit.setOnAction(event ->
+        {
+            if (hide) stage.hide();
+            else stage.close();
+        });
+
+        return exit;
+    }
+
+    private Button CreateButton(String buttonText, EventHandler<ActionEvent> event)
+    {
+        Button b = new Button(buttonText);
+        b.setFont(Font.font("arial", 16));
+        b.setTextFill(Color.web("#f9e294"));
+        b.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
+        b.setOnAction(event);
+
+        return b;
     }
 
     private void SetCellFactory(ComboBox comboBox)
@@ -333,6 +350,40 @@ public class SmiteRandomiserUI extends Application {
                 }
             }
 
+        });
+    }
+
+    private void SetDraggable(Node node, Stage stage)
+    {
+        node.setOnMousePressed(event ->
+        {
+            xOffset = stage.getX() - event.getScreenX();
+            yOffset = stage.getY() - event.getScreenY();
+        });
+
+        node.setOnMouseDragged(event ->
+        {
+            stage.setX(event.getScreenX() + xOffset);
+            stage.setY(event.getScreenY() + yOffset);
+
+        });
+    }
+
+    private void UpdateImageOnResize(Stage stage, ImageView imageView, Image image, double percentage)
+    {
+        _onDragEvent.subscribe(click -> {
+            double height = stage.getHeight() * percentage;    //height equal to 15% of total
+            double updatedWidth = height/image.getHeight() * image.getWidth();      //width adjusted to match
+
+            if (updatedWidth < stage.getWidth())
+            {
+                imageView.setFitHeight(height);
+            }
+            else
+            {
+                double updatedHeight = stage.getWidth()/image.getWidth() * image.getHeight();        //height based on maximum width (only used for shrinking)
+                imageView.setFitHeight(updatedHeight);
+            }
         });
     }
 
