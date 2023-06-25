@@ -48,7 +48,7 @@ public class SmiteRandomiserUI extends Application {
     ObservableList<String> gods = FXCollections.observableArrayList();
 
     EventStream _onDragEvent;
-    EventSource _onRandomiseEvent;
+    EventSource<Boolean> _onRandomiseEvent;
     BorderPane root = new BorderPane();
     ComboBox list;
     Stage _modifyRulesStage = new Stage();
@@ -68,7 +68,7 @@ public class SmiteRandomiserUI extends Application {
 
         _constants = new Constants();
 
-        _onRandomiseEvent = new EventSource();
+        _onRandomiseEvent = new EventSource<Boolean>();
 
         VBox topBox = new VBox(5);
         topBox.setAlignment(Pos.CENTER);
@@ -112,18 +112,23 @@ public class SmiteRandomiserUI extends Application {
                 stackPane,
                 SetupGodsDropdown(),
                 CreateButton("Modify Rules", event -> _modifyRulesStage.show()),
-                CreateButton("Randomise", event -> Randomise()));
+                CreateButton("Randomise", event -> _onRandomiseEvent.push(true)));
+
+
+        ImageView imageView = new ImageView();
+        imageView.setFitHeight(_constants.DefaultScreenHeight()*0.6);
+        imageView.setPreserveRatio(true);
+
+        //setup event handlers
+        _onRandomiseEvent.subscribe(x -> imageView.setImage(new Image(_smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex()))));
+        SetupRandomise();
+        _onRandomiseEvent.push(true);
 
         String url = _smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex());
         Image image = new Image(url);
-        ImageView imageView = new ImageView(image);
-        imageView.setFitHeight(_constants.DefaultScreenHeight()*0.6);
-        imageView.setPreserveRatio(true);
         UpdateImageOnResize(primaryStage, imageView, image, 0.6);
-        _onRandomiseEvent.subscribe(x -> imageView.setImage(new Image(_smiteAPI.GetGodImageLinks().get(list.getSelectionModel().getSelectedIndex()))));
+        imageView.setImage(image);
         root.setCenter(imageView);
-
-        Randomise();
     }
 
     private void ModifyRuleStageSetup()
@@ -253,24 +258,31 @@ public class SmiteRandomiserUI extends Application {
         list.setBackground(new Background(new BackgroundFill(Color.BLACK, new CornerRadii(10), Insets.EMPTY)));
         SetCellFactory(list);
         SetButtonCell(list);
-        list.setOnAction(event -> _onRandomiseEvent.push(null));
+        list.setOnAction(event -> _onRandomiseEvent.push(false));
 
         return list;
     }
 
-    private void Randomise()
+    private void SetupRandomise()
     {
-        Random rand = new Random();
-        list.getSelectionModel().select(rand.nextInt(gods.size()));
-        _onRandomiseEvent.push(null);
         Label l = new Label();
         l.setStyle("-fx-text-fill: black;-fx-font-family: arial;-fx-font-size: 32px;");
 
-        ArrayList<String> rules = _ruleSet.GetRules(_smiteAPI.GetGodType((String)list.getSelectionModel().getSelectedItem()));
-        if (!rules.isEmpty())
+        _onRandomiseEvent.subscribe(randomiseList ->
         {
-            l.setText(rules.get(rand.nextInt(rules.size())));
-        }
+            Random rand = new Random();
+
+            if (randomiseList)
+            {
+                list.getSelectionModel().select(rand.nextInt(gods.size()));
+            }
+
+            ArrayList<String> rules = _ruleSet.GetRules(_smiteAPI.GetGodType((String) list.getSelectionModel().getSelectedItem()));
+            if (!rules.isEmpty())
+            {
+                l.setText(rules.get(rand.nextInt(rules.size())));
+            }
+        });
 
         TilePane tile = new TilePane();
         tile.setAlignment(Pos.CENTER);

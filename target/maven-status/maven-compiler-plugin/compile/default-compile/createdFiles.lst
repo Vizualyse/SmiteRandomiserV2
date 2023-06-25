@@ -1,10 +1,15 @@
 Implementation\SmiteRandomiserUI.class
 Implementation\SmiteRandomiserUI$1.class
 Interfaces\IConstants.class
+Interfaces\ISmiteAPI.class
 Implementation\SmiteRandomiserRules.class
 Implementation\SmiteRandomiserRules$1.class
 Implementation\SmiteWebRipAPI.class
 Implementation\SmiteRandomiserUI$1$1.class
 Implementation\SmiteAPI.class
+Helpers\ResourceHelper.class
 Implementation\Constants.class
+Enums\GodType.class
+Implementation\GUIStarter.class
 Implementation\SmiteRandomiserUI$2.class
+Implementation\God.class
