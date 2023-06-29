@@ -3,42 +3,55 @@ package Implementation;
 import Enums.GodType;
 import Interfaces.IConstants;
 import Interfaces.ISmiteAPI;
+import org.apache.commons.codec.StringEncoderComparator;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import java.io.*;
+import java.sql.SQLOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Objects;
 
 public class SmiteWebRipAPI implements ISmiteAPI
 {
     IConstants _constants;
-    private Document _doc;
     private Elements _godTable = new Elements();
+    private Elements _itemTable = new Elements();
 
     private ArrayList<God> _gods = new ArrayList<>();
-    private ArrayList<String> _godImageLinks = new ArrayList();
+    private ArrayList<Item> _items = new ArrayList<>();
 
     public SmiteWebRipAPI()
     {
         _constants = new Constants();
+        _godTable = GetGodTable();
+        _itemTable = GetItemTable();
+    }
+
+    public Elements GetGodTable()
+    {
         try
         {
-            _doc = Jsoup.connect("https://smite.fandom.com/wiki/List_of_gods").get();
-            _doc.getElementsByTag("tr").forEach(x -> {
+            Document doc = Jsoup.connect("https://smite.fandom.com/wiki/List_of_gods").get();
+            Elements godTable = new Elements();
+            doc.getElementsByTag("tr").forEach(x -> {
                 if (x.select(":contains(Physical)").size() > 0){
-                    _godTable.add(x);
+                    godTable.add(x);
                 }
                 else if (x.select(":contains(Magical)").size() > 0){
-                    _godTable.add(x);
+                    godTable.add(x);
                 }
             });
+            return godTable;
         }
         catch (IOException e)
         {
             System.out.println(e);
         }
+        return null;
     }
 
     /**
@@ -78,7 +91,7 @@ public class SmiteWebRipAPI implements ISmiteAPI
         {
             ArrayList<String> finalGodWikiLinks = godWikiLinks;
             finalGodWikiLinks.forEach(x -> _gods.get(finalGodWikiLinks.indexOf(x)).GodWikiLink = x);
-            return godWikiLinks;
+            return finalGodWikiLinks;
         }
 
         if (_godTable == null) { return new ArrayList<>(); }
@@ -101,22 +114,21 @@ public class SmiteWebRipAPI implements ISmiteAPI
         ArrayList<String> godNames = GetGodNames();
 
         //local links to images
-        godImageLinks = PullGodImagesFromFile(_constants);
+        godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
 
         if (!godImageLinks.isEmpty() && godImageLinks.size() == godNames.size())
         {
             ArrayList<String> finalGodImageLinks = godImageLinks;
             finalGodImageLinks.forEach(x -> _gods.get(finalGodImageLinks.indexOf(x)).GodImageLink = x);
-            return godImageLinks;
+            return finalGodImageLinks;
         }
 
         //remote links to images - download to file and pull from there
         godImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodImageListFileName());
-        if (!godImageLinks.isEmpty() && godNames.size() == _godImageLinks.size())
+        if (!godImageLinks.isEmpty() && godNames.size() == godImageLinks.size())
         {
-            ArrayList<String> finalGodImageLinks = godImageLinks;
-            finalGodImageLinks.forEach(x -> DownloadImageDataToFile(x, finalGodImageLinks.indexOf(x), _constants));
-            godImageLinks = PullGodImagesFromFile(_constants);
+            DownloadImageDataToFile(godNames, godImageLinks, _constants.ItemImagesFolder());
+            godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
             ArrayList<String> finalGodImageLinksFromFile = godImageLinks;
             finalGodImageLinksFromFile.forEach(x -> _gods.get(finalGodImageLinksFromFile.indexOf(x)).GodImageLink = x);
             return godImageLinks;
@@ -144,11 +156,13 @@ public class SmiteWebRipAPI implements ISmiteAPI
         {
             String url = y.select(".image").first().attr("href");
             _gods.get(godPages.indexOf(y)).GodImageLink = url;
-            DownloadImageDataToFile(url, godPages.indexOf(y), _constants);
         });
 
         godImageLinks = new ArrayList(_gods.stream().map(x -> x.GodImageLink).toList());
         WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodImageListFileName(), godImageLinks);
+
+        DownloadImageDataToFile(godNames, godImageLinks, _constants.ItemImagesFolder());
+        godImageLinks = PullImagesFromFile(godNames, _constants.ItemImagesFolder());
 
         return godImageLinks;
     }
@@ -157,5 +171,151 @@ public class SmiteWebRipAPI implements ISmiteAPI
     public GodType GetGodType(String godName)
     {
         return _gods.stream().filter(x -> x.GodName.equals(godName)).map(x -> x.GodType).findFirst().orElse(null);
+    }
+
+    public Elements GetItemTable()
+    {
+        try
+        {
+            Document doc = Jsoup.connect("https://smite.fandom.com/wiki/Items").get();
+            String [] list = doc.body().toString().split("List of items</span>");
+
+            if (list.length == 3)
+            {
+                list = list[2].split("<table class=\"navbox\" cellspacing=\"0\" style=\";\">");
+            }
+
+            if (list.length > 0)
+            {
+                //break into separate list of <div> inners
+                list = list[0].split("<div");
+                ArrayList<String> items = new ArrayList<>();
+                Arrays.stream(list).forEach(x ->
+                {
+                    Arrays.stream(x.split("</div>")).findFirst().ifPresent(y ->
+                    {
+                        if (!y.isBlank())
+                        {
+                            items.add(y);
+                        }
+                    });
+                });
+
+                //break into spans and convert to documents for parsing
+                ArrayList<String> spanList = new ArrayList<>(items.stream().map(x ->
+                {
+                    int i = x.indexOf(">");
+                    if (i > -1)
+                    {
+                        String result = x.substring(i + 1, x.length()).strip();
+                        return result.endsWith(")") ? result.substring(0, result.length() - 1) : result;
+                    }
+                    return null;
+                }).toList());
+                spanList.removeIf(x -> x == null || !x.endsWith("</span>"));
+                Elements spanElements = new Elements();
+                spanList.forEach(x -> spanElements.add(Jsoup.parse(x)));
+
+                return new Elements(spanElements.stream().sorted(Comparator.comparing(x -> x.getElementsByTag("a").attr("title"))).toList());
+            }
+        }
+        catch (IOException e)
+        {
+            System.out.println(e);
+        }
+        return null;
+    }
+
+    @Override
+    public ArrayList<String> GetItemNames()
+    {
+        if (!_items.isEmpty()) { return new ArrayList(_items.stream().map(x -> x.ItemName).toList()); }
+        if (_itemTable == null) { return new ArrayList<>(); }
+
+        _itemTable.forEach(x -> {
+            Item item = new Item();
+            item.ItemName = x.selectFirst("a").attr("title");
+            _items.add(item);
+        });
+
+        return new ArrayList(_items.stream().map(x -> x.ItemName).toList());
+    }
+
+    @Override
+    public ArrayList<String> GetItemWikiLinks()
+    {
+        ArrayList itemWikiLinks = new ArrayList(_items.stream().map(x -> x.ItemWikiLink).toList());
+        itemWikiLinks.removeIf(Objects::isNull);
+        if (!itemWikiLinks.isEmpty()) { return itemWikiLinks; }
+
+        itemWikiLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.ItemWikiListFileName());
+        ArrayList<String> itemNames = GetItemNames();
+
+        if (!itemWikiLinks.isEmpty() && itemNames.size() == itemWikiLinks.size())
+        {
+            ArrayList<String> finalItemWikiLinks = itemWikiLinks;
+            finalItemWikiLinks.forEach(x -> _items.get(finalItemWikiLinks.indexOf(x)).ItemWikiLink = x);
+            return finalItemWikiLinks;
+        }
+
+        if (_itemTable == null) { return new ArrayList<>(); }
+
+        String baseUrl = "https://smite.fandom.com";
+        _itemTable.forEach(x -> _items.get(_itemTable.indexOf(x)).ItemWikiLink = baseUrl + x.select("a").first().attr("href"));
+        itemWikiLinks = new ArrayList(_items.stream().map(x -> x.ItemWikiLink).toList());
+
+        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.ItemWikiListFileName(), itemWikiLinks);
+
+        return itemWikiLinks;
+    }
+
+    @Override
+    public ArrayList<String> GetItemImageLinks()
+    {
+        ArrayList<String> itemImageLinks = new ArrayList(_items.stream().map(x -> x.ItemImageLink).toList());
+        itemImageLinks.removeIf(Objects::isNull);
+        if (!itemImageLinks.isEmpty()) { return itemImageLinks; }
+        ArrayList<String> itemNames = GetItemNames();
+
+        //local links to images
+        itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
+
+        if (!itemImageLinks.isEmpty() && itemImageLinks.size() == itemNames.size())
+        {
+            ArrayList<String> finalItemImageLinks = itemImageLinks;
+            finalItemImageLinks.forEach(x -> _items.get(finalItemImageLinks.indexOf(x)).ItemImageLink = x);
+            return finalItemImageLinks;
+        }
+
+        //remote links to images - download to file and pull from there
+        itemImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.ItemImageListFileName());
+        if (!itemImageLinks.isEmpty() && itemNames.size() == itemImageLinks.size())
+        {
+            DownloadImageDataToFile(itemNames, itemImageLinks, _constants.ItemImagesFolder());
+            itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
+            ArrayList<String> finalGodImageLinksFromFile = itemImageLinks;
+            finalGodImageLinksFromFile.forEach(x -> _items.get(finalGodImageLinksFromFile.indexOf(x)).ItemImageLink = x);
+            return itemImageLinks;
+        }
+
+        //pull new data
+        if (_itemTable == null) { return new ArrayList<>(); }
+
+        _itemTable.forEach(y ->
+        {
+            String url = Arrays.stream(y.getElementsByTag("img").attr("data-src").split("/scale")).findFirst().orElse("");
+            if (url.isBlank())
+            {
+                url = Arrays.stream(y.getElementsByTag("img").attr("src").split("/scale")).findFirst().orElse("");
+            }
+            _items.get(_itemTable.indexOf(y)).ItemImageLink = url;
+
+        });
+        itemImageLinks = new ArrayList(_items.stream().map(x -> x.ItemImageLink).toList());
+        WriteStringDataToFile(_constants.ResourcesFolder() + _constants.ItemImageListFileName(), itemImageLinks);
+
+        DownloadImageDataToFile(itemNames, itemImageLinks, _constants.ItemImagesFolder());
+        itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
+        return itemImageLinks;
     }
 }

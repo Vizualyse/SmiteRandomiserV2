@@ -14,10 +14,15 @@ public class Constants implements IConstants
     public String ResourcesFolder() { return "resources/"; };
     @Override
     public String ImagesFolder() { return "resources/images/"; };
+    public String ItemImagesFolder() { return "resources/item_images/"; };
     @Override
     public String GodWikiListFileName() { return "GodWikiList.txt"; };
     @Override
     public String GodImageListFileName() { return "GodImageList.txt"; };
+    @Override
+    public String ItemWikiListFileName() { return "ItemWikiList.txt"; };
+    @Override
+    public String ItemImageListFileName() { return "ItemImageList.txt"; };
     @Override
     public String RuleListFileName() { return "rules.txt"; };
 }

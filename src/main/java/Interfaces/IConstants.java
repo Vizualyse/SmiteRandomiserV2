@@ -13,7 +13,10 @@ public interface IConstants
     default String DataFolder() { return null; };
     default String ResourcesFolder() { return null; };
     default String ImagesFolder() { return null; };
+    default String ItemImagesFolder() { return null; };
     default String GodWikiListFileName() { return null; };
     default String GodImageListFileName() { return null; };
+    default String ItemWikiListFileName() { return null; };
+    default String ItemImageListFileName() { return null; };
     default String RuleListFileName() { return null; };
 }

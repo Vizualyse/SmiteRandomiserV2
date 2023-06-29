@@ -83,6 +83,24 @@ public class SmiteAPI implements ISmiteAPI
     }
 
     @Override
+    public ArrayList<String> GetItemNames()
+    {
+        return null;
+    }
+
+    @Override
+    public ArrayList<String> GetItemWikiLinks()
+    {
+        return null;
+    }
+
+    @Override
+    public ArrayList<String> GetItemImageLinks()
+    {
+        return null;
+    }
+
+    @Override
     public GodType GetGodType(String godName)
     {
         return null;

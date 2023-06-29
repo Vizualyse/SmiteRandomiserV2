@@ -18,6 +18,9 @@ public interface ISmiteAPI
     ArrayList<String> GetGodNames();
     ArrayList<String> GetGodWikiLinks();
     ArrayList<String> GetGodImageLinks();
+    ArrayList<String> GetItemNames();
+    ArrayList<String> GetItemWikiLinks();
+    ArrayList<String> GetItemImageLinks();
     GodType GetGodType(String godName);
 
     /**
@@ -82,23 +85,31 @@ public interface ISmiteAPI
      * @param godImageLinks list of links to find index - length should match god names
      * @param constants an implementation of the IConstants interface
      */
-    default void DownloadImageDataToFile(String url, int godIndex, IConstants constants)
+    default void DownloadImageDataToFile(ArrayList<String> fileNames, ArrayList<String> links, String folder)
     {
         try
         {
-            ArrayList<String> godNames = GetGodNames();
-            Files.createDirectories(Paths.get(constants.ImagesFolder()));
-            String fileName = godNames.get(godIndex);
-            Connection.Response resultImageResponse = Jsoup.connect(url).ignoreContentType(true).execute();
-
-            FileOutputStream out = (new FileOutputStream(constants.ImagesFolder() + fileName + ".jpg"));
-            out.write(resultImageResponse.bodyAsBytes());
-            out.close();
+            Files.createDirectories(Paths.get(folder));
         }
         catch (IOException e)
         {
             System.out.println(e);
         }
+        fileNames.forEach(x ->
+        {
+            try
+            {
+                Connection.Response resultImageResponse = Jsoup.connect(links.get(fileNames.indexOf(x))).ignoreContentType(true).execute();
+
+                FileOutputStream out = (new FileOutputStream(folder + x + ".jpg"));
+                out.write(resultImageResponse.bodyAsBytes());
+                out.close();
+            }
+            catch (IOException e)
+            {
+                System.out.println(e);
+            }
+        });
     }
 
     /**
@@ -107,30 +118,25 @@ public interface ISmiteAPI
      * @return an ArrayList of local URLs
      * @param constants an implementation of the IConstants interface
      */
-    default ArrayList<String> PullGodImagesFromFile(IConstants constants)
+    default ArrayList<String> PullImagesFromFile(ArrayList<String> fileNames, String folder)
     {
-        ArrayList<String> godNames = GetGodNames();
         ArrayList result = new ArrayList();
-        File imgLocation = new File(constants.ImagesFolder());
+        File imgLocation = new File(folder);
         if (imgLocation.isDirectory())
         {
             List<String> imgLocationList = Arrays.stream(imgLocation.list()).toList();
-            if (imgLocationList.size() == godNames.size())
+
+            if (imgLocationList.size() == fileNames.size())
             {
-                imgLocationList.forEach(x ->
-                {
-                    //if file name matches name of god then add to list
-                    if (x.startsWith(godNames.get(imgLocationList.indexOf(x))))
+                fileNames.forEach(x -> {
+                    File godImage = new File(folder + x + ".jpg");
+                    try
                     {
-                        File godImage = new File(constants.ImagesFolder() + x);
-                        try
-                        {
-                            result.add(godImage.toURI().toURL().toString());
-                        }
-                        catch (MalformedURLException e)
-                        {
-                            System.out.println(e);
-                        }
+                        result.add(godImage.toURI().toURL().toString());
+                    }
+                    catch (MalformedURLException e)
+                    {
+                        System.out.println(e);
                     }
                 });
             }
