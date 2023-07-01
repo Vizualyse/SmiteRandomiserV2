@@ -1,6 +1,7 @@
 package Interfaces;
 
 import Enums.GodType;
+import Helpers.ResourceHelper;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 
@@ -99,11 +100,21 @@ public interface ISmiteAPI
         {
             try
             {
-                Connection.Response resultImageResponse = Jsoup.connect(links.get(fileNames.indexOf(x))).ignoreContentType(true).execute();
+                String link = links.get(fileNames.indexOf(x));
 
-                FileOutputStream out = (new FileOutputStream(folder + x + ".jpg"));
-                out.write(resultImageResponse.bodyAsBytes());
-                out.close();
+                //if the link is blank use missing link
+                if (link.isBlank())
+                {
+                    link = ResourceHelper.GetMissingTextureUrl();
+                }
+                //if the link hasn't been downloaded
+                if (!link.equals("DOWNLOADED")) {
+                    Connection.Response resultImageResponse = Jsoup.connect(link).ignoreContentType(true).execute();
+
+                    FileOutputStream out = (new FileOutputStream(folder + x.replaceAll("[^\\sa-zA-Z0-9]", "_").replace(" ", "_") + ".jpg"));
+                    out.write(resultImageResponse.bodyAsBytes());
+                    out.close();
+                }
             }
             catch (IOException e)
             {
@@ -124,22 +135,21 @@ public interface ISmiteAPI
         File imgLocation = new File(folder);
         if (imgLocation.isDirectory())
         {
-            List<String> imgLocationList = Arrays.stream(imgLocation.list()).toList();
-
-            if (imgLocationList.size() == fileNames.size())
+            fileNames.forEach(x ->
             {
-                fileNames.forEach(x -> {
-                    File godImage = new File(folder + x + ".jpg");
-                    try
+                File godImage = new File(folder + x.replaceAll("[^\\sa-zA-Z0-9]", "_").replace(" ", "_") + ".jpg");
+                try
+                {
+                    if (godImage.exists())
                     {
                         result.add(godImage.toURI().toURL().toString());
                     }
-                    catch (MalformedURLException e)
-                    {
-                        System.out.println(e);
-                    }
-                });
-            }
+                }
+                catch (MalformedURLException e)
+                {
+                    System.out.println(e);
+                }
+            });
         }
         return result;
     }

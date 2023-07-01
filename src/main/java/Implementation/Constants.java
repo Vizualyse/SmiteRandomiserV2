@@ -25,4 +25,6 @@ public class Constants implements IConstants
     public String ItemImageListFileName() { return "ItemImageList.txt"; };
     @Override
     public String RuleListFileName() { return "rules.txt"; };
+    @Override
+    public String MissingTextureFileName() {return "missingtexture.webp"; }
 }

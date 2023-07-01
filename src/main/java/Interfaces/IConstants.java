@@ -19,4 +19,5 @@ public interface IConstants
     default String ItemWikiListFileName() { return null; };
     default String ItemImageListFileName() { return null; };
     default String RuleListFileName() { return null; };
+    default String MissingTextureFileName() { return null; };
 }

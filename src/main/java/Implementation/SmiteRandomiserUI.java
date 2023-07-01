@@ -77,7 +77,11 @@ public class SmiteRandomiserUI extends Application {
         root.setStyle("-fx-border-color: black; -fx-background-color: #f9e294;");
         SetDraggable(root, primaryStage);
 
-        BorderlessScene scene = new BorderlessScene(primaryStage, StageStyle.UNDECORATED, root, _constants.MinScreenWidth(), _constants.MinScreenHeight());
+        HBox horizontalLayout = new HBox(5);
+        FlowPane itemFlow = new FlowPane();
+        horizontalLayout.getChildren().addAll(itemFlow, root);
+
+        BorderlessScene scene = new BorderlessScene(primaryStage, StageStyle.UNDECORATED, horizontalLayout, _constants.MinScreenWidth(), _constants.MinScreenHeight());
         scene.removeDefaultCSS();
         _onDragEvent = EventStreams.eventsOf(primaryStage, MouseEvent.MOUSE_DRAGGED);
 
@@ -129,6 +133,7 @@ public class SmiteRandomiserUI extends Application {
         UpdateImageOnResize(primaryStage, imageView, image, 0.6);
         imageView.setImage(image);
         root.setCenter(imageView);
+        _smiteAPI.GetItemImageLinks();
     }
 
     private void ModifyRuleStageSetup()

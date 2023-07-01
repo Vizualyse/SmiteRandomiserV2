@@ -1,6 +1,7 @@
 package Implementation;
 
 import Enums.GodType;
+import Helpers.ResourceHelper;
 import Interfaces.IConstants;
 import Interfaces.ISmiteAPI;
 import org.apache.commons.codec.StringEncoderComparator;
@@ -113,8 +114,9 @@ public class SmiteWebRipAPI implements ISmiteAPI
         if (!godImageLinks.isEmpty()) { return godImageLinks; }
         ArrayList<String> godNames = GetGodNames();
 
+        System.out.println("Pulling God Images from File");
         //local links to images
-        godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
+        ArrayList<String> godImageLinksOnFile = godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
 
         if (!godImageLinks.isEmpty() && godImageLinks.size() == godNames.size())
         {
@@ -123,11 +125,15 @@ public class SmiteWebRipAPI implements ISmiteAPI
             return finalGodImageLinks;
         }
 
+        System.out.println("Fallback");
+        System.out.println("Pulling God Image Links from File");
         //remote links to images - download to file and pull from there
         godImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.GodImageListFileName());
-        if (!godImageLinks.isEmpty() && godNames.size() == godImageLinks.size())
+
+        if (!godImageLinks.isEmpty() && godNames.size() == godImageLinks.size() && !(godImageLinks.contains(ResourceHelper.GetMissingTextureUrl()) || godImageLinks.contains(ResourceHelper.GetMissingTextureLocalUrl())))
         {
-            DownloadImageDataToFile(godNames, godImageLinks, _constants.ItemImagesFolder());
+            godImageLinks = CheckIfImageExistsOnFile(godNames, godImageLinks, godImageLinksOnFile, _constants.ImagesFolder());
+            DownloadImageDataToFile(godNames, godImageLinks, _constants.ImagesFolder());
             godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
             ArrayList<String> finalGodImageLinksFromFile = godImageLinks;
             finalGodImageLinksFromFile.forEach(x -> _gods.get(finalGodImageLinksFromFile.indexOf(x)).GodImageLink = x);
@@ -140,11 +146,15 @@ public class SmiteWebRipAPI implements ISmiteAPI
         ArrayList<String> wikiLinks = GetGodWikiLinks();
         ArrayList<Document> godPages = new ArrayList<>();
 
-        wikiLinks.forEach(x ->
+        System.out.println("Fallback");
+        System.out.println("Pulling New Wiki Pages for Gods");
+
+        //very readable way of writing download missing images
+        godNames.stream().filter(x -> !godImageLinksOnFile.stream().map(y -> y.split(".jpg")[0]).toList().contains(x)).forEach(x ->
         {
             try
             {
-                godPages.add(Jsoup.connect(x).get());
+                godPages.add(Jsoup.connect(wikiLinks.get(godNames.indexOf(x))).get());
             }
             catch (IOException e)
             {
@@ -154,15 +164,21 @@ public class SmiteWebRipAPI implements ISmiteAPI
 
         godPages.forEach(y ->
         {
-            String url = y.select(".image").first().attr("href");
+            System.out.println(y);
+            String url = y.select("a.image").first().attr("href");
+            if (!url.isBlank())
+            {
+                url = Arrays.stream(url.split("cb")).findFirst().orElse(ResourceHelper.GetMissingTextureUrl());
+            }
             _gods.get(godPages.indexOf(y)).GodImageLink = url;
         });
 
         godImageLinks = new ArrayList(_gods.stream().map(x -> x.GodImageLink).toList());
         WriteStringDataToFile(_constants.ResourcesFolder() + _constants.GodImageListFileName(), godImageLinks);
 
-        DownloadImageDataToFile(godNames, godImageLinks, _constants.ItemImagesFolder());
-        godImageLinks = PullImagesFromFile(godNames, _constants.ItemImagesFolder());
+        godImageLinks = CheckIfImageExistsOnFile(godNames, godImageLinks, godImageLinksOnFile, _constants.ImagesFolder());
+        DownloadImageDataToFile(godNames, godImageLinks, _constants.ImagesFolder());
+        godImageLinks = PullImagesFromFile(godNames, _constants.ImagesFolder());
 
         return godImageLinks;
     }
@@ -277,8 +293,9 @@ public class SmiteWebRipAPI implements ISmiteAPI
         if (!itemImageLinks.isEmpty()) { return itemImageLinks; }
         ArrayList<String> itemNames = GetItemNames();
 
+        System.out.println("Pulling Item Images from File");
         //local links to images
-        itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
+        ArrayList<String> itemImageLinksOnFile = itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
 
         if (!itemImageLinks.isEmpty() && itemImageLinks.size() == itemNames.size())
         {
@@ -287,10 +304,13 @@ public class SmiteWebRipAPI implements ISmiteAPI
             return finalItemImageLinks;
         }
 
+        System.out.println("Fallback");
+        System.out.println("Pulling Item Image Links from File");
         //remote links to images - download to file and pull from there
         itemImageLinks = ReadStringDataFromFile(_constants.ResourcesFolder() + _constants.ItemImageListFileName());
-        if (!itemImageLinks.isEmpty() && itemNames.size() == itemImageLinks.size())
+        if (!itemImageLinks.isEmpty() && itemNames.size() == itemImageLinks.size() && !(itemImageLinks.contains(ResourceHelper.GetMissingTextureUrl()) || itemImageLinks.contains(ResourceHelper.GetMissingTextureLocalUrl())))
         {
+            itemImageLinks = CheckIfImageExistsOnFile(itemNames, itemImageLinks, itemImageLinksOnFile, _constants.ItemImagesFolder());
             DownloadImageDataToFile(itemNames, itemImageLinks, _constants.ItemImagesFolder());
             itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
             ArrayList<String> finalGodImageLinksFromFile = itemImageLinks;
@@ -301,12 +321,14 @@ public class SmiteWebRipAPI implements ISmiteAPI
         //pull new data
         if (_itemTable == null) { return new ArrayList<>(); }
 
+        System.out.println("Fallback");
+        System.out.println("Pulling New Wiki Pages for Items");
         _itemTable.forEach(y ->
         {
-            String url = Arrays.stream(y.getElementsByTag("img").attr("data-src").split("/scale")).findFirst().orElse("");
+            String url = Arrays.stream(y.getElementsByTag("img").attr("data-src").split("/scale")).findFirst().orElse(ResourceHelper.GetMissingTextureUrl());
             if (url.isBlank())
             {
-                url = Arrays.stream(y.getElementsByTag("img").attr("src").split("/scale")).findFirst().orElse("");
+                url = Arrays.stream(y.getElementsByTag("img").attr("src").split("/scale")).findFirst().orElse(ResourceHelper.GetMissingTextureUrl());
             }
             _items.get(_itemTable.indexOf(y)).ItemImageLink = url;
 
@@ -314,8 +336,19 @@ public class SmiteWebRipAPI implements ISmiteAPI
         itemImageLinks = new ArrayList(_items.stream().map(x -> x.ItemImageLink).toList());
         WriteStringDataToFile(_constants.ResourcesFolder() + _constants.ItemImageListFileName(), itemImageLinks);
 
+        itemImageLinks = CheckIfImageExistsOnFile(itemNames, itemImageLinks, itemImageLinksOnFile, _constants.ItemImagesFolder());
+
         DownloadImageDataToFile(itemNames, itemImageLinks, _constants.ItemImagesFolder());
         itemImageLinks = PullImagesFromFile(itemNames, _constants.ItemImagesFolder());
         return itemImageLinks;
+    }
+
+    private ArrayList<String> CheckIfImageExistsOnFile(ArrayList<String> names, ArrayList<String> imageLinks, ArrayList<String> imageLinksOnFile, String folder)
+    {
+        //awful way to mark existing files as downloaded
+        ArrayList<String> result = new ArrayList(imageLinks.stream().map(x -> { if ( imageLinksOnFile.stream().map(y -> y.split(folder)[1]).toList().contains(names.get(imageLinks.indexOf(x)).replaceAll("[^\\sa-zA-Z0-9]", "_").replace(" ", "_") + ".jpg")) { return "DOWNLOADED"; } else { return x; } }).toList());
+        System.out.println("Downloading: ");
+        System.out.println(result.stream().filter(x -> !x.equals("DOWNLOADED")).toList());
+        return result;
     }
 }
